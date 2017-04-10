@@ -1,9 +1,9 @@
 function dF = fLiveWireGetCostFcn(dImg, dWz, dWg, dWd)
 
 if nargin < 2,
-    dWz = 0.2;
-    dWg = 0.8;
-    dWd = 0.2;
+    dWz = 0.43;
+    dWg = 0.43;
+    dWd = 0.14;
 end
 
 % Calculat the cost function
