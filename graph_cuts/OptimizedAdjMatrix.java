@@ -1,18 +1,18 @@
 import java.util.LinkedList;
 
 public class OptimizedAdjMatrix{
-	
+
 	private int[][] adjMatrix,residualGraph;
 	private int source, sink;
 	private int nbPixels,height,width;
-	
-	public OptimizedAdjMatrix(int[][] binaryImg, int[] lambda, int beta){
+
+	public OptimizedAdjMatrix(int[][] binaryImg, int beta, int t1, int t2){
 		this.height=binaryImg.length;
 		this.width=binaryImg[0].length;
 		this.nbPixels=height*width;
 		this.source=nbPixels;
 		this.sink=nbPixels+1;
-		
+
 		//Adjacency matrix initialization
 		adjMatrix=new int[nbPixels+2][];
 		for(int i=0;i<nbPixels;i++){
@@ -26,15 +26,18 @@ public class OptimizedAdjMatrix{
 			adjMatrix[nbPixels][i]=0;
 			adjMatrix[nbPixels+1][i]=0;			//Will be useful for the residual graph
 		}
-		
+
 		//Construction of the graph
 		for(int i=0;i<height;i++){
 			for(int j=0;j<width;j++){
 				int indice=i*width+j;
-				if(binaryImg[i][j]==0){   //Edge from this pixel to the sink
-					adjMatrix[indice][5]=lambda[0];
-				} else {				  //Edge from the source to this pixel
-					adjMatrix[nbPixels][indice]=lambda[1];
+				int valeur=binaryImg[i][j];
+				if(valeur<t1){   //Edge from this pixel to the sink
+					adjMatrix[indice][5]=(int)(1*(t1-valeur));
+					//System.out.println(adjMatrix[indice][5]);
+				} else if(valeur>t2){				  //Edge from the source to this pixel
+					adjMatrix[nbPixels][indice]=(int)(1*(valeur-t2));
+					//System.out.println(adjMatrix[nbPixels][indice]);
 				}
 				if(i>0){				//Neighbour above
 					adjMatrix[indice][2]=beta;
@@ -63,11 +66,11 @@ public class OptimizedAdjMatrix{
 			}
 		}
 	}
-	 	
+
 	public int[][] pushRelabelAlgo(){
-				
+
 		initResidualGraph();
-		
+
 		int[] h = new int[nbPixels+2];  //Tableau des hauteurs de chaque noeud
 		int[] excess = new int[nbPixels+2];			//Tableau donnant l'excédent de flux par noeud
 
@@ -81,7 +84,7 @@ public class OptimizedAdjMatrix{
 		excess[sink]=0;
 		h[source]=nbPixels+2;
 		h[sink]=0;
-		
+
 		while(true){
 			boolean action=push(excess,h);
 			if(!action)
@@ -89,16 +92,16 @@ public class OptimizedAdjMatrix{
 			if(!action)
 				break;
 		}
-		
-		
+
+
 		System.out.println("Computing the corresponding cut");
 		//Find the cut thanks to the residual graph
 		int[] cut=new int[nbPixels+2];
 		for(int i=0;i<nbPixels+2;i++)
 			cut[i]=0;
-			
+
 		residualGraphExporation(cut,nbPixels+2);
-		
+
 		//Creating the image thanks to the cut
 		int[][] img=new int[height][width];
 		for(int i=0;i<height;i++){
@@ -116,10 +119,10 @@ public class OptimizedAdjMatrix{
 		for(int i=0;i<nbPixels;i++)
 			flow+=(adjMatrix[source][i]-residualGraph[source][i]);
 		//System.out.println("Flot max de "+flow);
-		
+
 		return img;
 	}
-	
+
 	private boolean push(int[] excess,int[] h){
 		boolean pushDone=false;
 		for(int i=0;i<excess.length-2;i++){
@@ -203,10 +206,10 @@ public class OptimizedAdjMatrix{
 		}
 		return pushDone;
 	}
-	
+
 	private boolean relabel(int[] e,int[] h){
 		boolean relabelDone=false;
-		
+
 		for(int i=0;i<e.length-2;i++){
 			if(i==sink)
 				continue;
@@ -270,23 +273,23 @@ public class OptimizedAdjMatrix{
 		}
 		return false;
 	}
-	
+
 	public int[][] minCut(){
 
 		initResidualGraph();
 		System.out.println("Computing the max-flow");
-		
+
 		int[] path=new int[nbPixels+2];
 		for(int i=0;i<nbPixels+2;i++)
 			path[i]=-1;
-		
+
 		//While there is an augmenting path from source to sink, update the residual graph
 		while(breadth_First_Search(path,nbPixels+2)){
 			//System.out.println("Chemin");
 			int pathFlow=Integer.MAX_VALUE;
 			//Find the flow of the augmenting path
 			int j=path[sink];
-			for(int i=sink; i!=source;i=path[i]){  
+			for(int i=sink; i!=source;i=path[i]){
 				int edgeWeight=0;
 				if(j==source){
 					edgeWeight=residualGraph[source][i];
@@ -313,9 +316,9 @@ public class OptimizedAdjMatrix{
 						edgeWeight=residualGraph[j][8];
 					} else if(xI==xJ+1 && yI==yJ+1) {
 						edgeWeight=residualGraph[j][9];
-					}	
-						
-					
+					}
+
+
 				}
 				//System.out.println("Arc de "+j+" a "+i+" de poids " +edgeWeight);
 				pathFlow=Math.min(pathFlow,edgeWeight);
@@ -324,7 +327,7 @@ public class OptimizedAdjMatrix{
 			//System.out.println("PathFlow de "+pathFlow);
 			//Update the residual graph
 			j=path[sink];
-			for(int i=sink; i!=source;i=path[i]){  
+			for(int i=sink; i!=source;i=path[i]){
 				if(j==source){
 					residualGraph[i][4]+=pathFlow;
 					residualGraph[source][i]-=pathFlow;
@@ -336,7 +339,7 @@ public class OptimizedAdjMatrix{
 					int xI=(i-yI)/width;
 					int yJ=j%width;
 					int xJ=(j-yJ)/width;
-					
+
 					if(yI>yJ && xI==xJ){  	//i=right neighbour of j
 						residualGraph[i][0]+=pathFlow;
 						residualGraph[j][1]-=pathFlow;
@@ -352,7 +355,7 @@ public class OptimizedAdjMatrix{
 					} else if(xI==xJ-1 && yI==yJ-1) {
 						residualGraph[i][9]+=pathFlow;
 						residualGraph[j][6]-=pathFlow;
-					} else if(xI==xJ-1 && yI==yJ+1) { 
+					} else if(xI==xJ-1 && yI==yJ+1) {
 						residualGraph[i][8]+=pathFlow;
 						residualGraph[j][7]-=pathFlow;
 					} else if(xI==xJ+1 && yI==yJ-1) {
@@ -362,21 +365,21 @@ public class OptimizedAdjMatrix{
 						residualGraph[i][6]+=pathFlow;
 						residualGraph[j][9]-=pathFlow;
 					}
-					
+
 				}
 				j=path[j];
 			}
 		}
-		
-		
+
+
 		System.out.println("Computing the corresponding cut");
 		//Find the cut thanks to the residual graph
 		int[] cut=new int[nbPixels+2];
 		for(int i=0;i<nbPixels+2;i++)
 			cut[i]=0;
-			
+
 		residualGraphExporation(cut,nbPixels+2);
-		
+
 		//Creating the image thanks to the cut
 		int[][] img=new int[height][width];
 		for(int i=0;i<height;i++){
@@ -390,17 +393,17 @@ public class OptimizedAdjMatrix{
 		}
 		return img;
 	}
-	
+
 	private void residualGraphExporation(int cut[], int nbNodes)
     {
 
         boolean marked[] = new boolean[nbNodes];
         for(int i=0; i<nbNodes; i++)
             marked[i]=false;
- 
+
         LinkedList<Integer> ll = new LinkedList<Integer>();
         ll.addFirst(source);
-        marked[source] = true; 
+        marked[source] = true;
         // BFS
         while (ll.size()!=0)
         {
@@ -434,7 +437,7 @@ public class OptimizedAdjMatrix{
 							case 4:
 								indiceN=nbNodes-2;
 								break;
-								
+
 							case 5:
 								indiceN=nbNodes-1;
 								break;
@@ -461,19 +464,19 @@ public class OptimizedAdjMatrix{
             }
         }
     }
-	
+
 	private boolean breadth_First_Search(int path[], int nbNodes)
     {
 
         boolean marked[] = new boolean[nbNodes];
         for(int i=0; i<nbNodes; i++)
             marked[i]=false;
- 
+
         LinkedList<Integer> ll = new LinkedList<Integer>();
         ll.addFirst(source);
         marked[source] = true;
         path[source]=-1;
- 
+
         // BFS
         while (ll.size()!=0)
         {
@@ -537,7 +540,7 @@ public class OptimizedAdjMatrix{
         }
         return false;
     }
-	
+
 	private void initResidualGraph(){
 		residualGraph=new int[adjMatrix.length][];
 		for(int i=0;i<residualGraph.length;i++){
