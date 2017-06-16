@@ -37,11 +37,36 @@ public class tool {
 			double[][] Output = new double[h][w];
 			//double[][] Output2= new double[h+1][w+1];
 			
-			
-			for(int y = 0; y < h; y++){
-				for(int x = 0; x < w; x++){
-					int p = Source.getRGB(x,y);
+			double[][] Out = new double[h+2][w+2];
 
+			for(int y = -1; y < h+1; y++){
+				for(int x =-1; x < w+1; x++){
+
+					int p;
+					if(y==-1){
+						if(x==-1){
+							p=Source.getRGB(x+1,y+1);
+						}else if(x==w){
+							p=Source.getRGB(x-1,y+1);
+						}else{
+							p=Source.getRGB(x,y+1);
+						}
+					}else if(y==h){
+						if(x==-1){
+							p=Source.getRGB(x+1,y-1);
+						}else if(x==w){
+							p=Source.getRGB(x-1,y-1);
+						}else{
+							p=Source.getRGB(x,y-1);
+						}
+					}else if(x==-1){
+						p=Source.getRGB(x+1,y);
+					}
+					else if(x==w){
+						p=Source.getRGB(x-1,y);
+					}else{
+						p = Source.getRGB(x,y);
+					}
 					int a = (p>>24)&0xff;
 				    int r = (p>>16)&0xff;
 				    int g = (p>>8)&0xff;
@@ -49,14 +74,30 @@ public class tool {
 
 					//calcul intensité
 					int avg = (r+g+b)/3;
-					Output[y][x]=avg;
+					Out[y+1][x+1]=avg;
 				}
 			}
-		return Output;
+			//tool.getImage(Out,"ext.png");
+		return Out;
 		
         }
-        
-
+   
+   
+   
+   
+   /****** créer une probabilité selon l'intensté d'un pixel (255=1 / 0=0) *****/
+   public static double[][] getProb(String path ) throws IOException{   
+		double[][] prob= getArray(path);  
+		int w =  prob[0].length;
+		int h =  prob.length;
+				
+				for(int k=1;k<w;k++){
+					for(int j=1;j<h;j++){
+						prob[j][k]=prob[j][k]/255;
+					}
+				}
+		return prob;
+	}
 
 	/*****Enregistre l'image correspondante au tableau de double donné (valable pour les ".png")**********/
 	public static void getImage(double[][] Source ,String path) throws IOException{
