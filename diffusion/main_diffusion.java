@@ -1,25 +1,3 @@
-/*
- * test.java
- * 
- * Copyright 2017 marie-lou <marie-lou@marielou-Lenovo-Yoga-500-15IBD>
- * 
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- * 
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- * 
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
- * MA 02110-1301, USA.
- * 
- * 
- */
 
 
 import java.io.File;
@@ -27,43 +5,62 @@ import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.util.Arrays;
+import java.lang.reflect.*;
 
 	public class main_diffusion {
 	public static String PATH;
 	
-	public static void main (String args[]) throws IOException{
-		String path="image.png";
-		if(args.length != 0){
+	public static void main (String args[]) throws  IOException,NoSuchMethodException,IllegalAccessException,InvocationTargetException{
+		String path;
+		double s;
+		double l;
+		int i;
+		int function;
+		
+
+		
+		//Initialisation parametres
+		if(args.length >=5){
 			path=args[0];
+			function=Integer.parseInt(args[1]);
+			i=Integer.parseInt(args[2]);
+			s=Double.parseDouble(args[3]);
+			l=Double.parseDouble(args[4]);
+		}else{
+			System.out.println(" Arguments manquants ");
+			System.out.println(" requis :   String pathImage , int fonction , int intensité, int sigma, int lambda ");
+			System.out.println(" Image: format .PNG");
+			System.out.println(" fonction :    1->tukey biweight  2-> HUber minimax   3-> lorentzian error norm  ");
+			System.out.println(" lambda=-1 ou sigma=-1   -> calcul automatique");
+			return;
 		}
-			
 		
-		//PATH=path;
+		//nitalisation probabilité
+		//La probabilité est calculée selon l'intensité lumineuse
+		//donc la segmentation est efficace pour un objet clair sur fond sombre
+		double [][] prob= tool.getProb(path);
+		
+		
 		double[][] tab=tool.getArray(path);
-		double sige= tukey.sigmae(tab);
-		System.out.println(sige);
-		double sig= Math.sqrt(5)*sige;
-		System.out.println(sig);
-		double lambda = 1/tukey.biweight(sige,sig);
-		System.out.println(lambda);
-		//tool.getImage(tab,"cercle2.png");
-		tab=tukey.border(tab,500,path);
+		double[][] tab2=tool.getArray(path);
 		
+		tukey.segmentation(tab,prob,i,s,l,path,function);
+		tukey.border(tab2,i,s,l,path,function);
 		
+	
 		
 		
 	}
         
     public static double[][] meanSmooth(double[][] Source,int intensity) throws IOException{
-			
 			int w =  Source[0].length;
-			int h =  Source[1].length;
+			int h =  Source.length;
 			
 			double[][] Output = Source;
 			
-			for(int i=0;i<intensity;i++){
-				for(int y = 1; y <h; y++){
-					for(int x = 1; x <w; x++){
+						for(int i=0;i<intensity-1;i++){
+				for(int y = 1; y <w-2; y++){
+					for(int x = 1; x <h-2; x++){
 						//CALCUL DES BORDS ET COINS
 						if(x==1 &&  y==1){
 							Output[x][y]=(Source[x+1][y]+Source[x][y+1])/2;
@@ -81,11 +78,16 @@ import java.util.Arrays;
 						}else if(y==1){
 							Output[x][y]=(Source[x+1][y]+Source[x-1][y]+Source[x][y+1])/3;
 						}else if(y==h-1){
+							
+						
 							Output[x][y]=(Source[x+1][y]+Source[x-1][y]+Source[x][y+-1])/3;
 						}else {
 							//GENERAL
-							Output[x][y]=(Source[x-1][y]+Source[x+1][y]+Source[x][y-1]+Source[x][y+1])/4;
-						}
+							Output[x][y]= (Source[x-1][y]+
+										Source[x+1][y]+
+										Source[x][y+1]+
+										Source[x][y-1])/4;
+							}
 					}
 				}
 			Source=Output;
